@@ -92,27 +92,21 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
       static_cast<usize>(black_non_pawn_key % CORRECTION_HISTORY_ENTRY_NB);
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
-    i32 new_weight  = std::min(16, 1 + depth);
-    i32 old_weight  = CORRECTION_HISTORY_WEIGHT_SCALE - new_weight;
+    f64 new_weight  = std::min(16, 1 + depth) / CORRECTION_HISTORY_WEIGHT_SCALE;
+    f64 old_weight  = 1 - new_weight;
 
     auto update_entry = [=](CorrectionHistoryEntry& entry) {
 
         i32 new_y = diff * CORRECTION_HISTORY_GRAIN_Y;
         i32 diff_y = new_y - entry[0];
-        i32 new_mean_y = entry[0] * old_weight + new_y * new_weight;
-        entry[0] = std::clamp(new_mean_y / CORRECTION_HISTORY_WEIGHT_SCALE, -CORRECTION_HISTORY_MAX_Y,
-                           CORRECTION_HISTORY_MAX_Y);
+        entry[0] = std::clamp(static_cast<i32>(entry[0] * old_weight + new_y * new_weight), -CORRECTION_HISTORY_MAX_Y, CORRECTION_HISTORY_MAX_Y);
 
         i32 new_x = eval * CORRECTION_HISTORY_GRAIN_X;
         i32 diff_x = new_x - entry[1];
-        i32 new_mean_x = entry[1] * old_weight + new_x * new_weight;
-        entry[1] = new_mean_x / CORRECTION_HISTORY_WEIGHT_SCALE;
+        entry[1] = static_cast<i32>(entry[1] * old_weight + new_x * new_weight);
 
-        i32 new_var_x = CORRECTION_HISTORY_WEIGHT_SCALE * old_weight * entry[2] + new_weight * old_weight * diff_x * diff_x;
-        entry[2] = new_var_x / (CORRECTION_HISTORY_WEIGHT_SCALE * CORRECTION_HISTORY_WEIGHT_SCALE);
-
-        i32 new_cov_xy = CORRECTION_HISTORY_WEIGHT_SCALE * old_weight * entry[3] + new_weight * old_weight * diff_x * diff_y;
-        entry[3] = new_cov_xy / (CORRECTION_HISTORY_WEIGHT_SCALE * CORRECTION_HISTORY_WEIGHT_SCALE);
+        entry[2] = static_cast<i32>(old_weight * (entry[2] + new_weight * diff_x * diff_x));
+        entry[3] = static_cast<i32>(old_weight * (entry[3] + new_weight * diff_x * diff_y));
     };
 
     update_entry(m_pawn_corr_hist[side_index][pawn_index]);
