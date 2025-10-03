@@ -95,18 +95,18 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
     i32 new_weight  = std::min(16, 1 + depth);
     i32 scaled_diff = diff * CORRECTION_HISTORY_GRAIN;
 
-    auto update_entry = [=](i32& entry) {
+    auto update_entry = [=](CorrectionHistoryEntry& entry) {
         i32 update =
-          entry * (CORRECTION_HISTORY_WEIGHT_SCALE - new_weight) + scaled_diff * new_weight;
+          entry[0] * (CORRECTION_HISTORY_WEIGHT_SCALE - new_weight) + scaled_diff * new_weight;
 
-        entry = std::clamp(update / CORRECTION_HISTORY_WEIGHT_SCALE, -CORRECTION_HISTORY_MAX,
+        entry[0] = std::clamp(update / CORRECTION_HISTORY_WEIGHT_SCALE, -CORRECTION_HISTORY_MAX,
                            CORRECTION_HISTORY_MAX);
     };
 
-    update_entry(m_pawn_corr_hist[side_index][pawn_index][0]);
-    update_entry(m_non_pawn_corr_hist[0][side_index][white_non_pawn_index][0]);
-    update_entry(m_non_pawn_corr_hist[1][side_index][black_non_pawn_index][0]);
-    update_entry(m_major_corr_hist[side_index][major_index][0]);
+    update_entry(m_pawn_corr_hist[side_index][pawn_index]);
+    update_entry(m_non_pawn_corr_hist[0][side_index][white_non_pawn_index]);
+    update_entry(m_non_pawn_corr_hist[1][side_index][black_non_pawn_index]);
+    update_entry(m_major_corr_hist[side_index][major_index]);
 }
 
 i32 History::get_correction(const Position& pos) {
@@ -122,13 +122,15 @@ i32 History::get_correction(const Position& pos) {
       static_cast<usize>(black_non_pawn_key % CORRECTION_HISTORY_ENTRY_NB);
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
+    auto get_entry = [=](CorrectionHistoryEntry& entry) {
+        return entry[0] / CORRECTION_HISTORY_GRAIN;
+    };
+
     i32 correction = 0;
-    correction += m_pawn_corr_hist[side_index][pawn_index][0] / CORRECTION_HISTORY_GRAIN;
-    correction +=
-      m_non_pawn_corr_hist[0][side_index][white_non_pawn_index][0] / CORRECTION_HISTORY_GRAIN;
-    correction +=
-      m_non_pawn_corr_hist[1][side_index][black_non_pawn_index][0] / CORRECTION_HISTORY_GRAIN;
-    correction += m_major_corr_hist[side_index][major_index][0] / CORRECTION_HISTORY_GRAIN;
+    correction += get_entry(m_pawn_corr_hist[side_index][pawn_index]);
+    correction += get_entry(m_non_pawn_corr_hist[0][side_index][white_non_pawn_index]);
+    correction += get_entry(m_non_pawn_corr_hist[1][side_index][black_non_pawn_index]);
+    correction += get_entry(m_major_corr_hist[side_index][major_index]);
 
     return correction;
 }
