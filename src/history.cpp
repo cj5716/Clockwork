@@ -105,8 +105,8 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
         i32 diff_x = new_x - entry[1];
         entry[1] = static_cast<i32>(entry[1] * old_weight + new_x * new_weight);
 
-        entry[2] = static_cast<i32>(old_weight * (entry[2] + new_weight * diff_x * diff_x));
-        entry[3] = static_cast<i32>(old_weight * (entry[3] + new_weight * diff_x * diff_y));
+        entry[2] = static_cast<i32>(old_weight * entry[2] + new_weight * diff_x * diff_x);
+        entry[3] = static_cast<i32>(old_weight * entry[3] + new_weight * diff_x * diff_y);
     };
 
     update_entry(m_pawn_corr_hist[side_index][pawn_index]);
