@@ -103,10 +103,10 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
                            CORRECTION_HISTORY_MAX);
     };
 
-    update_entry(m_pawn_corr_hist[side_index][pawn_index]);
-    update_entry(m_non_pawn_corr_hist[0][side_index][white_non_pawn_index]);
-    update_entry(m_non_pawn_corr_hist[1][side_index][black_non_pawn_index]);
-    update_entry(m_major_corr_hist[side_index][major_index]);
+    update_entry(m_pawn_corr_hist[side_index][pawn_index][0]);
+    update_entry(m_non_pawn_corr_hist[0][side_index][white_non_pawn_index][0]);
+    update_entry(m_non_pawn_corr_hist[1][side_index][black_non_pawn_index][0]);
+    update_entry(m_major_corr_hist[side_index][major_index][0]);
 }
 
 i32 History::get_correction(const Position& pos) {
@@ -123,12 +123,12 @@ i32 History::get_correction(const Position& pos) {
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
     i32 correction = 0;
-    correction += m_pawn_corr_hist[side_index][pawn_index] / CORRECTION_HISTORY_GRAIN;
+    correction += m_pawn_corr_hist[side_index][pawn_index][0] / CORRECTION_HISTORY_GRAIN;
     correction +=
-      m_non_pawn_corr_hist[0][side_index][white_non_pawn_index] / CORRECTION_HISTORY_GRAIN;
+      m_non_pawn_corr_hist[0][side_index][white_non_pawn_index][0] / CORRECTION_HISTORY_GRAIN;
     correction +=
-      m_non_pawn_corr_hist[1][side_index][black_non_pawn_index] / CORRECTION_HISTORY_GRAIN;
-    correction += m_major_corr_hist[side_index][major_index] / CORRECTION_HISTORY_GRAIN;
+      m_non_pawn_corr_hist[1][side_index][black_non_pawn_index][0] / CORRECTION_HISTORY_GRAIN;
+    correction += m_major_corr_hist[side_index][major_index][0] / CORRECTION_HISTORY_GRAIN;
 
     return correction;
 }
