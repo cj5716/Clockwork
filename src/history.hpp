@@ -4,6 +4,7 @@
 #include "position.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace Clockwork {
 
@@ -18,7 +19,7 @@ using CorrectionHistory = std::array<std::array<CorrectionHistoryEntry, 16384>, 
 constexpr i32 HISTORY_MAX                     = 16384;
 constexpr u64 CORRECTION_HISTORY_ENTRY_NB     = 16384;
 constexpr i32 CORRECTION_HISTORY_GRAIN_Y      = 256;
-constexpr i32 CORRECTION_HISTORY_GRAIN_X      = 4096;
+constexpr i32 CORRECTION_HISTORY_GRAIN_X      = 256;
 constexpr i32 CORRECTION_HISTORY_WEIGHT_SCALE = 256;
 constexpr i32 CORRECTION_HISTORY_MAX_Y        = CORRECTION_HISTORY_GRAIN_Y * 32;
 
@@ -57,6 +58,10 @@ private:
     static void update_hist_entry_banger(i32& entry, i32 base, i32 bonus) {
         entry += bonus - base * std::abs(bonus) / HISTORY_MAX;
         entry = std::clamp(entry, -2 * HISTORY_MAX, 2 * HISTORY_MAX);
+    }
+
+    static i32 ciekmoid(i32 x) {
+        return 64 * x / (std::abs(x) + 128);
     }
 
     MainHistory                      m_main_hist          = {};

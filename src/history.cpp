@@ -101,7 +101,7 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
         i32 diff_y = new_y - entry[0];
         entry[0] = std::clamp(static_cast<i32>(entry[0] * old_weight + new_y * new_weight), -CORRECTION_HISTORY_MAX_Y, CORRECTION_HISTORY_MAX_Y);
 
-        i32 new_x = eval * CORRECTION_HISTORY_GRAIN_X;
+        i32 new_x = ciekmoid(eval) * CORRECTION_HISTORY_GRAIN_X;
         i32 diff_x = new_x - entry[1];
         entry[1] = static_cast<i32>(entry[1] * old_weight + new_x * new_weight);
 
@@ -132,7 +132,7 @@ i32 History::get_correction(const Position& pos, i32 eval) {
         i32 linear = entry[2] == 0 ? 0 : entry[3] / entry[2];
         i32 constant = entry[0] - linear * entry[1];
         linear *= CORRECTION_HISTORY_GRAIN_X;
-        return (linear * eval + constant) / CORRECTION_HISTORY_GRAIN_Y;
+        return (linear * ciekmoid(eval) + constant) / CORRECTION_HISTORY_GRAIN_Y;
     };
 
     i32 correction = 0;
