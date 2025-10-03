@@ -92,7 +92,7 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
       static_cast<usize>(black_non_pawn_key % CORRECTION_HISTORY_ENTRY_NB);
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
-    f64 new_weight  = std::min(16, 1 + depth) / CORRECTION_HISTORY_WEIGHT_SCALE;
+    f64 new_weight  = static_cast<f64>(std::min(16, 1 + depth)) / static_cast<f64>(CORRECTION_HISTORY_WEIGHT_SCALE);
     f64 old_weight  = 1 - new_weight;
 
     auto update_entry = [=](CorrectionHistoryEntry& entry) {
