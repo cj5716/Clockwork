@@ -79,7 +79,7 @@ void History::update_noisy_stats(const Position& pos, Move move, i32 bonus) {
                       bonus);
 }
 
-void History::update_correction_history(const Position& pos, i32 depth, i32 diff) {
+void History::update_correction_history(const Position& pos, i32 depth, i32 diff, i32 eval) {
     usize side_index         = static_cast<usize>(pos.active_color());
     u64   pawn_key           = pos.get_pawn_key();
     u64   white_non_pawn_key = pos.get_non_pawn_key(Color::White);
@@ -93,14 +93,26 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
     i32 new_weight  = std::min(16, 1 + depth);
-    i32 scaled_diff = diff * CORRECTION_HISTORY_GRAIN;
+    i32 old_weight  = CORRECTION_HISTORY_WEIGHT_SCALE - new_weight;
 
     auto update_entry = [=](CorrectionHistoryEntry& entry) {
-        i32 update =
-          entry[0] * (CORRECTION_HISTORY_WEIGHT_SCALE - new_weight) + scaled_diff * new_weight;
 
-        entry[0] = std::clamp(update / CORRECTION_HISTORY_WEIGHT_SCALE, -CORRECTION_HISTORY_MAX,
-                           CORRECTION_HISTORY_MAX);
+        i32 new_y = diff * CORRECTION_HISTORY_GRAIN_Y;
+        i32 diff_y = new_y - entry[0];
+        i32 new_mean_y = entry[0] * old_weight + new_y * new_weight;
+        entry[0] = std::clamp(new_mean_y / CORRECTION_HISTORY_WEIGHT_SCALE, -CORRECTION_HISTORY_MAX_Y,
+                           CORRECTION_HISTORY_MAX_Y);
+
+        i32 new_x = eval * CORRECTION_HISTORY_GRAIN_X;
+        i32 diff_x = new_x - entry[1];
+        i32 new_mean_x = entry[1] * old_weight + new_x * new_weight;
+        entry[1] = new_mean_x / CORRECTION_HISTORY_WEIGHT_SCALE;
+
+        i32 new_var_x = CORRECTION_HISTORY_WEIGHT_SCALE * old_weight * entry[2] + new_weight * old_weight * diff_x * diff_x;
+        entry[2] = new_var_x / (CORRECTION_HISTORY_WEIGHT_SCALE * CORRECTION_HISTORY_WEIGHT_SCALE);
+
+        i32 new_cov_xy = CORRECTION_HISTORY_WEIGHT_SCALE * old_weight * entry[3] + new_weight * old_weight * diff_x * diff_y;
+        entry[3] = new_cov_xy / (CORRECTION_HISTORY_WEIGHT_SCALE * CORRECTION_HISTORY_WEIGHT_SCALE);
     };
 
     update_entry(m_pawn_corr_hist[side_index][pawn_index]);
@@ -109,7 +121,7 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
     update_entry(m_major_corr_hist[side_index][major_index]);
 }
 
-i32 History::get_correction(const Position& pos) {
+i32 History::get_correction(const Position& pos, i32 eval) {
     usize side_index         = static_cast<usize>(pos.active_color());
     u64   pawn_key           = pos.get_pawn_key();
     u64   white_non_pawn_key = pos.get_non_pawn_key(Color::White);
@@ -123,7 +135,10 @@ i32 History::get_correction(const Position& pos) {
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
     auto get_entry = [=](CorrectionHistoryEntry& entry) {
-        return entry[0] / CORRECTION_HISTORY_GRAIN;
+        i32 linear = entry[2] == 0 ? 0 : entry[3] / entry[2];
+        i32 constant = entry[0] - linear * entry[1];
+        linear *= CORRECTION_HISTORY_GRAIN_X;
+        return (linear * eval + constant) / CORRECTION_HISTORY_GRAIN_Y;
     };
 
     i32 correction = 0;

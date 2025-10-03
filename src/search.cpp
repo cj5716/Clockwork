@@ -390,8 +390,8 @@ Value Worker::search(
     Value raw_eval    = -VALUE_INF;
     ss->static_eval   = -VALUE_INF;
     if (!is_in_check) {
-        correction      = m_td.history.get_correction(pos);
         raw_eval        = tt_data ? tt_data->eval : evaluate(pos);
+        correction      = m_td.history.get_correction(pos, raw_eval);
         ss->static_eval = raw_eval + correction;
         improving = (ss - 2)->static_eval != -VALUE_INF && ss->static_eval > (ss - 2)->static_eval;
 
@@ -634,7 +634,7 @@ Value Worker::search(
         && !(best_move != Move::none() && (best_move.is_capture() || best_move.is_promotion()))
         && !((bound == Bound::Lower && best_value <= ss->static_eval)
              || (bound == Bound::Upper && best_value >= ss->static_eval))) {
-        m_td.history.update_correction_history(pos, depth, best_value - raw_eval);
+        m_td.history.update_correction_history(pos, depth, best_value - raw_eval, raw_eval);
     }
 
     return best_value;
@@ -689,8 +689,8 @@ Value Worker::quiesce(const Position& pos, Stack* ss, Value alpha, Value beta, i
     Value raw_eval    = -VALUE_INF;
     Value static_eval = -VALUE_INF;
     if (!is_in_check) {
-        correction  = m_td.history.get_correction(pos);
         raw_eval    = tt_data ? tt_data->eval : evaluate(pos);
+        correction  = m_td.history.get_correction(pos, raw_eval);
         static_eval = raw_eval + correction;
 
         if (!tt_data) {
