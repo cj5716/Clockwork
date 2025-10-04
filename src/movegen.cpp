@@ -122,7 +122,7 @@ bool MoveGen::is_legal_no_checkers(Move m, Bitboard valid_dests, bool can_ep) co
     if (src.ptype() == PieceType::Pawn) {
 
         if (m.is_capture()) {
-            Bitboard promo_zone{static_cast<u64>(0xFF) << (active_color == Color::White ? 56 : 0)};
+            Bitboard promo_zone{static_cast<u64>(0xFF000000000000FF)};
 
             if (m.is_promotion()) {
                 return promo_zone.is_set(m.to()) && valid_attack && enemy_dest;
