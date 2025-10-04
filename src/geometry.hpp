@@ -22,7 +22,7 @@ forceinline constexpr u8 expand_sq(Square sq) {
 template<typename V>
 forceinline std::tuple<V, V> compress_coords(V list) {
     V valid      = V::eq8_vm(list & V::broadcast8(0x88), V::zero());
-    V compressed = (list & V::broadcast8(0x07)) | (V::shr16(list, 1) & V::broadcast8(0x38));
+    V compressed = V::sub8(list, V::shr16(list, 1) & V::broadcast8(0x38));
     return {compressed, valid};
 }
 }  // namespace internal

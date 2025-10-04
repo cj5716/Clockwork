@@ -163,6 +163,10 @@ struct v256 {
         return {_mm256_add_epi8(a.raw, b.raw)};
     }
 
+    static forceinline v256 sub8(v256 a, v256 b) {
+        return {_mm256_sub_epi8(a.raw, b.raw)};
+    }
+
     static forceinline v256 blend8(v256 mask, v256 a, v256 b) {
         return {_mm256_blendv_epi8(a.raw, b.raw, mask.raw)};
     }
@@ -344,6 +348,10 @@ struct v512 {
 
     static forceinline v512 add8(v512 a, v512 b) {
         return v512{v256::add8(a.raw[0], b.raw[0]), v256::add8(a.raw[1], b.raw[1])};
+    }
+
+    static forceinline v512 sub8(v512 a, v512 b) {
+        return v512{v256::sub8(a.raw[0], b.raw[0]), v256::sub8(a.raw[1], b.raw[1])};
     }
 
     static forceinline v512 compress8(u64 m, v512 a) {
