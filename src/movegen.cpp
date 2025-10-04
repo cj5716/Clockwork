@@ -281,7 +281,7 @@ void MoveGen::generate_moves_to(MoveList& noisy,
     write(noisy, at, nonpawn_active & enemy & danger, non_pawn_mask & ~king_mask,
           MoveFlags::CaptureBit);
 
-    Bitboard promo_zone{static_cast<u64>(0xFF) << (active_color == Color::White ? 56 : 0)};
+    Bitboard promo_zone{static_cast<u64>(0xFF000000000000FF)};
     // Capture-with-promotion
     write(noisy, at, pawn_active & enemy & promo_zone, pawn_mask, MoveFlags::PromoQueenCapture);
     write(noisy, at, pawn_active & enemy & promo_zone, pawn_mask, MoveFlags::PromoKnightCapture);
