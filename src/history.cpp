@@ -96,7 +96,7 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
     i32 new_weight_bound = std::min(48, 3 + 3 * depth);
-    i32 new_weight_non_bound = std::min(32, 2 + 2 * depth);
+    i32 new_weight_non_bound = std::min(16, 1 + depth);
     i32 scaled_diff = diff * CORRECTION_HISTORY_GRAIN;
 
     auto update_entry = [=](CorrectionHistoryEntry& entry) {
