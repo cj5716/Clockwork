@@ -389,14 +389,12 @@ Value Worker::search(
     bool  is_in_check = pos.is_in_check();
     bool  improving   = false;
     Value correction  = 0;
-    Bound eval_bound  = Bound::None;
+    EvalBound eval_bound = EvalBound::None;
     Value raw_eval    = -VALUE_INF;
     ss->static_eval   = -VALUE_INF;
     if (!is_in_check) {
         raw_eval        = tt_data ? tt_data->eval : evaluate(pos);
-        eval_bound      = raw_eval <= alpha ? Bound::Upper
-                        : raw_eval >= beta  ? Bound::Lower
-                                            : Bound::Exact;
+        eval_bound      = get_eval_bound(raw_eval, alpha, beta);
         correction      = m_td.history.get_correction(pos, eval_bound);
         ss->static_eval = raw_eval + correction;
         improving = (ss - 2)->static_eval != -VALUE_INF && ss->static_eval > (ss - 2)->static_eval;
@@ -670,7 +668,6 @@ Value Worker::search(
             && !(best_move != Move::none() && (best_move.is_capture() || best_move.is_promotion()))
             && !((bound == Bound::Lower && best_value <= ss->static_eval)
                  || (bound == Bound::Upper && best_value >= ss->static_eval))) {
-            assert(eval_bound != Bound::None);
             m_td.history.update_correction_history(pos, depth, best_value - raw_eval, eval_bound);
         }
     }
@@ -726,12 +723,10 @@ Value Worker::quiesce(const Position& pos, Stack* ss, Value alpha, Value beta, i
     Value correction  = 0;
     Value raw_eval    = -VALUE_INF;
     Value static_eval = -VALUE_INF;
-    Bound eval_bound  = Bound::None;
+    EvalBound eval_bound = EvalBound::None;
     if (!is_in_check) {
         raw_eval    = tt_data ? tt_data->eval : evaluate(pos);
-        eval_bound  = raw_eval <= alpha ? Bound::Upper
-                    : raw_eval >= beta  ? Bound::Lower
-                                        : Bound::Exact;
+        eval_bound  = get_eval_bound(raw_eval, alpha, beta);
         correction  = m_td.history.get_correction(pos, eval_bound);
         static_eval = raw_eval + correction;
 
