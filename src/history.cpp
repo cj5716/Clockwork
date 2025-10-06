@@ -1,5 +1,6 @@
 #include "history.hpp"
 #include "search.hpp"
+#include "tt.hpp"
 
 namespace Clockwork {
 
@@ -79,7 +80,7 @@ void History::update_noisy_stats(const Position& pos, Move move, i32 bonus) {
                       bonus);
 }
 
-void History::update_correction_history(const Position& pos, i32 depth, i32 diff) {
+void History::update_correction_history(const Position& pos, i32 depth, i32 diff, Bound eval_bound) {
     usize side_index         = static_cast<usize>(pos.active_color());
     u64   pawn_key           = pos.get_pawn_key();
     u64   white_non_pawn_key = pos.get_non_pawn_key(Color::White);
@@ -92,15 +93,23 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
       static_cast<usize>(black_non_pawn_key % CORRECTION_HISTORY_ENTRY_NB);
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
-    i32 new_weight  = std::min(16, 1 + depth);
+    i32 new_weight_bound = std::min(48, 3 + 3 * depth);
+    i32 new_weight_non_bound = std::min(32, 2 + 2 * depth);
     i32 scaled_diff = diff * CORRECTION_HISTORY_GRAIN;
 
-    auto update_entry = [=](i32& entry) {
-        i32 update =
-          entry * (CORRECTION_HISTORY_WEIGHT_SCALE - new_weight) + scaled_diff * new_weight;
+    auto update_entry = [=](CorrectionHistoryEntry& entry) {
 
-        entry = std::clamp(update / CORRECTION_HISTORY_WEIGHT_SCALE, -CORRECTION_HISTORY_MAX,
-                           CORRECTION_HISTORY_MAX);
+        for (Bound b : {Bound::Upper, Bound::Exact, Bound::Lower}) {
+            i32 new_weight = b == eval_bound ? new_weight_bound
+                                             : new_weight_non_bound;
+
+            u8 bound_idx = static_cast<u8>(b) - 1;
+            i32 update =
+              entry[bound_idx] * (CORRECTION_HISTORY_WEIGHT_SCALE - new_weight) + scaled_diff * new_weight;
+
+            entry[bound_idx] = std::clamp(update / CORRECTION_HISTORY_WEIGHT_SCALE, -CORRECTION_HISTORY_MAX,
+                               CORRECTION_HISTORY_MAX);
+        }
     };
 
     update_entry(m_pawn_corr_hist[side_index][pawn_index]);
@@ -109,7 +118,7 @@ void History::update_correction_history(const Position& pos, i32 depth, i32 diff
     update_entry(m_major_corr_hist[side_index][major_index]);
 }
 
-i32 History::get_correction(const Position& pos) {
+i32 History::get_correction(const Position& pos, Bound eval_bound) {
     usize side_index         = static_cast<usize>(pos.active_color());
     u64   pawn_key           = pos.get_pawn_key();
     u64   white_non_pawn_key = pos.get_non_pawn_key(Color::White);
@@ -122,11 +131,15 @@ i32 History::get_correction(const Position& pos) {
       static_cast<usize>(black_non_pawn_key % CORRECTION_HISTORY_ENTRY_NB);
     usize major_index = static_cast<usize>(major_key % CORRECTION_HISTORY_ENTRY_NB);
 
+    auto get_entry = [=](CorrectionHistoryEntry& entry) {
+        return entry[static_cast<u8>(eval_bound) - 1];
+    };
+
     i32 correction = 0;
-    correction += m_pawn_corr_hist[side_index][pawn_index];
-    correction += m_non_pawn_corr_hist[0][side_index][white_non_pawn_index];
-    correction += m_non_pawn_corr_hist[1][side_index][black_non_pawn_index];
-    correction += m_major_corr_hist[side_index][major_index];
+    correction += get_entry(m_pawn_corr_hist[side_index][pawn_index]);
+    correction += get_entry(m_non_pawn_corr_hist[0][side_index][white_non_pawn_index]);
+    correction += get_entry(m_non_pawn_corr_hist[1][side_index][black_non_pawn_index]);
+    correction += get_entry(m_major_corr_hist[side_index][major_index]);
 
     return correction / CORRECTION_HISTORY_GRAIN;
 }

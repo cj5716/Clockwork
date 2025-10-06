@@ -389,11 +389,15 @@ Value Worker::search(
     bool  is_in_check = pos.is_in_check();
     bool  improving   = false;
     Value correction  = 0;
+    Bound eval_bound  = Bound::None;
     Value raw_eval    = -VALUE_INF;
     ss->static_eval   = -VALUE_INF;
     if (!is_in_check) {
-        correction      = m_td.history.get_correction(pos);
         raw_eval        = tt_data ? tt_data->eval : evaluate(pos);
+        eval_bound      = raw_eval <= alpha ? Bound::Upper
+                        : raw_eval >= beta  ? Bound::Lower
+                                            : Bound::Exact;
+        correction      = m_td.history.get_correction(pos, eval_bound);
         ss->static_eval = raw_eval + correction;
         improving = (ss - 2)->static_eval != -VALUE_INF && ss->static_eval > (ss - 2)->static_eval;
 
@@ -656,8 +660,8 @@ Value Worker::search(
 
     if (!excluded) {
         Bound bound   = best_value >= beta        ? Bound::Lower
-                  : best_move != Move::none() ? Bound::Exact
-                                              : Bound::Upper;
+                      : best_move != Move::none() ? Bound::Exact
+                                                  : Bound::Upper;
         Move  tt_move = best_move != Move::none() ? best_move : tt_data ? tt_data->move : Move::none();
         m_searcher.tt.store(pos, ply, raw_eval, tt_move, best_value, depth, ttpv, bound);
 
@@ -665,12 +669,11 @@ Value Worker::search(
         if (!is_in_check
             && !(best_move != Move::none() && (best_move.is_capture() || best_move.is_promotion()))
             && !((bound == Bound::Lower && best_value <= ss->static_eval)
-                || (bound == Bound::Upper && best_value >= ss->static_eval))) {
-            m_td.history.update_correction_history(pos, depth, best_value - raw_eval);
+                 || (bound == Bound::Upper && best_value >= ss->static_eval))) {
+            assert(eval_bound != Bound::None);
+            m_td.history.update_correction_history(pos, depth, best_value - raw_eval, eval_bound);
         }
     }
-
-    
 
     return best_value;
 }
@@ -723,9 +726,13 @@ Value Worker::quiesce(const Position& pos, Stack* ss, Value alpha, Value beta, i
     Value correction  = 0;
     Value raw_eval    = -VALUE_INF;
     Value static_eval = -VALUE_INF;
+    Bound eval_bound  = Bound::None;
     if (!is_in_check) {
-        correction  = m_td.history.get_correction(pos);
         raw_eval    = tt_data ? tt_data->eval : evaluate(pos);
+        eval_bound  = raw_eval <= alpha ? Bound::Upper
+                    : raw_eval >= beta  ? Bound::Lower
+                                        : Bound::Exact;
+        correction  = m_td.history.get_correction(pos, eval_bound);
         static_eval = raw_eval + correction;
 
         if (!tt_data) {
