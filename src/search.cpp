@@ -885,9 +885,6 @@ Value Worker::quiesce(const Position& pos, Stack* ss, Value alpha, Value beta, i
         Position pos_after  = pos.move(m, m_td.push_psqt_state());
         moves_searched++;
 
-        // If we've found a legal move, then we can begin skipping quiet moves.
-        moves.skip_quiets();
-
         // Put hash into repetition table. TODO: encapsulate this and any other future adjustment to do "on move" into a proper function
         repetition_info.push(pos_after.get_hash_key(), pos_after.is_reversible(m));
 
@@ -915,11 +912,16 @@ Value Worker::quiesce(const Position& pos, Stack* ss, Value alpha, Value beta, i
                 }
             }
         }
+
+        // If we've found a legal move that averts mate, then we can begin skipping quiet moves.
+        if (!is_being_mated_score(best_value)) {
+            moves.skip_quiets();
+        }
     }
 
     // Checkmate check
     if (is_in_check && moves_searched == 0) {
-        return -VALUE_WIN + 1;
+        return mated_in(ply);
     }
 
     // Store to the TT
