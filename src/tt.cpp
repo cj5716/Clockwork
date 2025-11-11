@@ -127,25 +127,22 @@ void TT::store(const Position& pos,
         move = tte.move;
     }
 
-    // give entries a bonus for type:
-    // exact = 3, lower = 2, upper = 1
-    i32 insert_flag_bonus = bound == Bound::Exact ? 3
-                          : bound == Bound::Lower ? 2
-                          : bound == Bound::Upper ? 1
-                                                  : 0;
-    i32 record_flag_bonus = tte.bound() == Bound::Exact ? 3
-                          : tte.bound() == Bound::Lower ? 2
-                          : tte.bound() == Bound::Upper ? 1
-                                                        : 0;
+    // give entries a bonus for flag type
+    auto flag_bonus = [](Bound bound) {
+        return bound == Bound::Exact ? 12
+             : bound == Bound::Lower ? 4
+             : bound == Bound::Upper ? 3
+                                     : 0;
+    };
 
-    i32 age_differential = (MAX_AGE + m_age - tte.age()) & AGE_MASK;
+    i32 insert_flag_bonus = flag_bonus(bound);
+    i32 record_flag_bonus = flag_bonus(tte.bound());
+    i32 age_differential  = (MAX_AGE + m_age - tte.age()) & AGE_MASK;
 
-    i32 insert_priority =
-      depth + insert_flag_bonus + (age_differential * age_differential) / 4;  //+ i32::from(pv);
-    i32 record_prority = tte.depth + record_flag_bonus;
+    i32 insert_threshold = depth - tte.depth + insert_flag_bonus - record_flag_bonus
+                         + (age_differential * age_differential) / 4 + 5;
 
-    if (tte.key16 != key || (bound == Bound::Exact && tte.bound() != Bound::Exact)
-        || insert_priority * 3 >= record_prority * 2) {
+    if (tte.key16 != key || insert_threshold > 0) {
         tte.key16 = key;
         tte.move  = move;
         tte.score = score_to_tt(score, ply);
